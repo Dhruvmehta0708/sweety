@@ -1,10 +1,25 @@
 process.env.NODE_ENV = 'test';
+const fs = require('fs');
+const path = require('path');
 const pool = require('../src/config/db');
 const request = require('supertest');
 const app = require('../src/app');
 
+let schemaEnsured = false;
+
+// Ensures schema tables and constraints exist in test database before testing
+async function ensureSchema() {
+  if (!schemaEnsured) {
+    const schemaPath = path.join(__dirname, '../db/schema.sql');
+    const sql = fs.readFileSync(schemaPath, 'utf-8');
+    await pool.query(sql);
+    schemaEnsured = true;
+  }
+}
+
 // Clean test database before or after test suites
 async function cleanDatabase() {
+  await ensureSchema();
   await pool.query('TRUNCATE TABLE readings, users RESTART IDENTITY CASCADE;');
 }
 
@@ -32,3 +47,4 @@ module.exports = {
   createTestUser,
   app,
 };
+

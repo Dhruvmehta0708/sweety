@@ -50,7 +50,7 @@ A full-stack blood glucose tracking web application designed for diabetes patien
 sweety/
 ├── README.md
 ├── .gitignore
-├── docker-compose.yml          # Optional PostgreSQL container
+├── docker-compose.yml          # Optional PostgreSQL container (included, not tested)
 ├── server/
 │   ├── package.json
 │   ├── .env.example
@@ -116,9 +116,9 @@ sweety/
 
 ## Prerequisites
 
-- **Node.js:** v18.x or higher (tested on Node v24)
+- **Node.js:** v18.x or higher (tested on Node v24.18.0)
 - **npm:** v9.x or higher
-- **PostgreSQL:** v14 or higher running locally on port 5432 (or running via Docker)
+- **PostgreSQL:** v14 or higher running locally on port 5432 (or running via Docker; `docker-compose.yml` is included in the project root for convenience, but is not tested)
 
 ---
 
@@ -137,12 +137,12 @@ Copy `server/.env.example` to `server/.env`:
 ```bash
 cp server/.env.example server/.env
 ```
-Ensure your database credentials match your PostgreSQL instance:
+Update your credentials in `server/.env`:
 ```env
 PORT=5000
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/sweety
-DATABASE_URL_TEST=postgresql://postgres:postgres@localhost:5432/sweety_test
-JWT_SECRET=sweety_secret_key_2026_dev
+DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/sweety
+DATABASE_URL_TEST=postgresql://postgres:YOUR_PASSWORD@localhost:5432/sweety_test
+JWT_SECRET=change_me
 JWT_EXPIRES_IN=7d
 ```
 
@@ -172,15 +172,24 @@ cd ..
 
 ## Database Setup
 
-Make sure PostgreSQL is running. Then create the tables and constraints:
+Make sure PostgreSQL is running.
 
+### Step 1: Create the development and test databases
+Run the following commands using `psql` (adjust `-U postgres` if using another PostgreSQL user):
+```bash
+psql -U postgres -c "CREATE DATABASE sweety;"
+psql -U postgres -c "CREATE DATABASE sweety_test;"
+```
+
+### Step 2: Initialize schema tables
+Apply the schema tables, safety net constraints, and indexes to the development database:
 ```bash
 # In the server directory:
 cd server
 npm run db:setup
 ```
 
-*(Optional: If running PostgreSQL via Docker, run `docker compose up -d` from the project root first).*
+*(Note for the test database: The Jest test suite automatically checks and initializes the schema in `sweety_test` upon running `npm test`, so no manual schema command is needed for tests).*
 
 ---
 
@@ -223,7 +232,7 @@ Visit **`http://localhost:5173`** in your browser.
 
 ## Running Backend Tests
 
-The test suite runs against the test database (`sweety_test`) using Jest and Supertest:
+The test suite runs against the test database (`sweety_test`) using Jest and Supertest. It automatically verifies that the tables exist in `sweety_test` before executing:
 
 ```bash
 cd server
@@ -266,6 +275,9 @@ Test coverage includes:
 2. **Future Date Evaluation:** "Future" is judged against the server's local calendar date formatted as `"YYYY-MM-DD"`.
 3. **Validation Rule Precedence:** On creating a reading, the 4-per-day limit is evaluated first; if within limit, the duplicate-slot check is evaluated second. On edit, the reading being updated is excluded from both checks.
 4. **Realistic Seed Data:** Seed readings mimic clinical blood glucose patterns (fasting 85-105 mg/dl, post-prandial 120-160 mg/dl) spread across both months to showcase all 3 report cards immediately.
+5. **Implementation Details:**
+   - Used bcryptjs (pure JavaScript, same algorithm as bcrypt) to avoid native build issues on Windows.
+   - Pagination is available on `GET /api/readings` (via `?page=1&limit=20`) but is not used in the UI.
 
 ### What I Would Improve With More Time:
 - **Visual Data Charts:** Interactive line charts (e.g. using lightweight SVG or Chart.js) to display glucose trends over the month.
