@@ -3,6 +3,7 @@ const cors = require('cors');
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
+const readingRoutes = require('./routes/readingRoutes');
 
 const app = express();
 
@@ -15,8 +16,9 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Mount authentication routes
+// Mount routes
 app.use('/api/auth', authRoutes);
+app.use('/api/readings', readingRoutes);
 
 // 404 handler for unknown routes
 app.use((req, res, next) => {
